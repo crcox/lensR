@@ -1,0 +1,110 @@
+addNet hier -i 6 -t 4 CONTINUOUS
+
+addGroup m1 12 INPUT
+addGroup m2 12 INPUT
+addGroup m3 12 INPUT
+
+#control only
+addGroup Control 3 INPUT
+
+addGroup m1rep 12 OUTPUT CROSS_ENTROPY -BIASED 
+addGroup m2rep 12 OUTPUT CROSS_ENTROPY -BIASED
+addGroup m3rep 12 OUTPUT CROSS_ENTROPY -BIASED
+
+addGroup m1m2 10
+addGroup m2m1 10
+addGroup m1m3 10
+addGroup m3m1 10
+addGroup m2m3 10
+addGroup m3m2 10
+
+#addGroup atl 20
+
+#Set biases on feature units to -3
+connectGroups bias m1rep -m -3 -r 0
+connectGroups bias m2rep -m -3 -r 0
+connectGroups bias m3rep -m -3 -r 0
+
+#Make sure biases on feature units can't learn
+freezeWeights -g {m1rep m2rep m3rep} -t bias
+
+#Connect input features to corresponding feature units with
+#a weight of +6, so net input for active features will be
+#+3 and for inactive features will be -3
+connectGroups m1 m1rep -p ONE_TO_ONE -m 6 -r 0
+connectGroups m2 m2rep -p ONE_TO_ONE -m 6 -r 0
+connectGroups m3 m3rep -p ONE_TO_ONE -m 6 -r 0
+
+#Self-connections among feature units
+connectGroups m1rep m1rep
+connectGroups m2rep m2rep
+connectGroups m3rep m3rep
+
+#Self-connections among hidden unit layers - B and C matched to this so is full
+connectGroups m1m2 m1m2
+connectGroups m1m3 m1m3
+connectGroups m2m1 m2m1
+connectGroups m2m3 m2m3
+connectGroups m3m1 m3m1
+connectGroups m3m2 m3m2
+
+#control only - FOR NOW FULLY CONN TO ALL SPOKES + HU UNILATERALLY
+connectGroups Control m1rep
+connectGroups Control m2rep
+connectGroups Control m3rep
+connectGroups Control m1m2
+connectGroups Control m1m3
+connectGroups Control m2m1
+connectGroups Control m2m3
+connectGroups Control m3m1
+connectGroups Control m3m2
+
+#connectGroups atl atl
+
+#connect feature units to their paired hidden layers
+connectGroups m1rep m1m2 -bi
+connectGroups m1rep m1m3 -bi
+connectGroups m2rep m2m1 -bi
+connectGroups m2rep m2m3 -bi
+connectGroups m3rep m3m1 -bi
+connectGroups m3rep m3m2 -bi
+
+#Connections among first layer hidden units (separate paths)- B and C matched to this so is full
+#Comment/uncomment to exclude/include
+connectGroups m1m2 m2m1 -bi
+connectGroups m1m3 m3m1 -bi
+connectGroups m2m3 m3m2 -bi
+
+#direct paths amongst surface representations:
+#comment/uncomment to exclude/include these
+#connectGroups m1rep m2rep -bi
+#connectGroups m1rep m3rep -bi
+#connectGroups m2rep m3rep -bi
+
+#Connect sep paths to hub
+#Comment/uncomment to exclude/include
+#connectGroups m1m2 atl -bi
+#connectGroups m2m1 atl -bi
+#connectGroups m1m3 atl -bi
+#connectGroups m3m1 atl -bi
+#connectGroups m2m3 atl -bi
+#connectGroups m3m2 atl -bi
+
+#CHANGED FOR CONTROL- HERE BASIC CONTROL - 1 OF 3 MOD IN, 1 OF 3 MOD OUT
+loadExamples hier_examples_basic_control.ex -exmode PER -set train
+loadExamples hier_examples_basic_control.ex -exmod ORD -set test
+
+#setObj learningRate 0.1
+#setObj momentum 0.95
+setObj learningRate 0.001
+setObj numUpdates 800000
+setObj weightDecay 0.0001
+
+#Training will stop when output units are less than 0.2 from target:
+setObj trainGroupCrit 0.2
+
+#change algorithm but don't start training
+#train -a steepest -setOnly
+train -a steepest
+
+#train -a dougsMomentum -setOnly
